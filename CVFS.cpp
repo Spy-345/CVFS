@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include <stdlib.h>f
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <iostream>
@@ -8,7 +8,7 @@
 
 // #defines Used In  the Project
 
-#define MAXINODE 5
+#define MAXINODE 5 //MACRO Value
 #define READ 1
 #define WRITE 2
 #define MAXFILESIZE 1024
@@ -115,7 +115,7 @@ void CreateDILB()
         }
         i++;
     }
-    printf("DILB Created Suuccesfully.\n");
+    printf("DILB Created Successfully.\n");
 }
 
 // This Function is used to All files on our VF System.
@@ -520,42 +520,53 @@ int lseekfile(int fd, int size, int from)
 };
 
 // This Function is Used to Create the New File
+
+// CreatFile(Demo.txt, 3);
 int CreatFile(char *name, int permission)
 {
-    int i = 1; //This is Set to 1 to allocate the file fd from 1st Index. 0th index is blank.
+    int i = 3; //This is Set to 3 to allocate the file fd from 3rd Index. 0, 1, 2nd indexes are blank.
     PINODE temp = head;
 
+    //Filter if given permissions for the file are wrong.
     if ((name == NULL) || (permission == 0) || (permission > 3)) return -1;
 
-    if (SUPERBLOCK_OBJ.FreeInodes == 0) return -2;
+    //When the Number of Free nodes stored in the superblock is 0 then we cant creat the file so return -2.
+    if (SUPERBLOCK_OBJ.FreeInodes == 0) return -2; 
 
+    //We are using the node so decrementing the number of free inodes by the 1.
     (SUPERBLOCK_OBJ.FreeInodes)--;
 
+    //Here we check if the newly created file with the specific name is already exist's or not if yes return -3.
     if (Get_Inode(name) != NULL) return -3;
 
+    //Here we travel the Inodes in the DILB to find out the Free Inode in the linked list.
     while (temp != NULL)
     {
         if (temp->FileType == 0) break;
 
         temp = temp->next;
     }
+    //Here we get the address of free inode inside temp.
 
+    //Here we are traveling the UFDT array to get the free index in the array where there is no allocation of the filetable.
     while (i < 50)
     {
-        if (UFDTArr[i].ptrfiletable == NULL) break;
+        if (UFDTArr[i].ptrfiletable == NULL) break; //Where we get the free index we break the loop.
 
         i++;
     }
     // *
-    UFDTArr[i].ptrfiletable = (PFILETABLE)malloc(sizeof(FILETABLE));
+    UFDTArr[i].ptrfiletable = (PFILETABLE)malloc(sizeof(FILETABLE)); //Allocation the memory for the File Table For and storing the address in the UFDT array at the found index.
 
+    //Initialising the Default values of the variables in the file table.
     UFDTArr[i].ptrfiletable->count = 1;
     UFDTArr[i].ptrfiletable->mode = permission;
     UFDTArr[i].ptrfiletable->readoffset = 0;
     UFDTArr[i].ptrfiletable->writeoffset = 0;
 
-    UFDTArr[i].ptrfiletable->ptrinode = temp;
+    UFDTArr[i].ptrfiletable->ptrinode = temp; //Storing the address of the free inode in the DILB, we got from the above while loop.
 
+    //Initialising the variables inside the allocated inode.
     strcpy(UFDTArr[i].ptrfiletable->ptrinode->FileName, name);
     UFDTArr[i].ptrfiletable->ptrinode->FileType = REGULAR;
     UFDTArr[i].ptrfiletable->ptrinode->ReferenceCount = 1;
@@ -566,40 +577,47 @@ int CreatFile(char *name, int permission)
     UFDTArr[i].ptrfiletable->ptrinode->Buffer = (char *)malloc(MAXFILESIZE);
 
     //*
-    return i;
+    return i; //Returning the index in the UFDT(File Descriptor) where the Address of newly created file table for the file is Stored.
 }
 
 // This Function is Used to Write the Data in the regular File.
 int WriteFile(int fd, char *arr, int iSize)
 {
+    // Here we check the mode of the file i.e. WRITE or READ + WRITE
     if (((UFDTArr[fd].ptrfiletable->mode) != WRITE) && ((UFDTArr[fd].ptrfiletable->mode) != READ + WRITE))
     {
         return -1;
     }
 
+    //Here we check the permmisions of the file given at the time of file creation.
     if (((UFDTArr[fd].ptrfiletable->ptrinode->permission) != WRITE) && ((UFDTArr[fd].ptrfiletable->ptrinode->permission) != READ + WRITE))
     {
         return -1;
     }
 
+    //Here if the write offset of the file isequal to the Maximum file size then we can't write the data into the file so return -2.
     if ((UFDTArr[fd].ptrfiletable->writeoffset) == MAXFILESIZE)
     {
         return -2;
     }
 
+    //If the requested file type is not regular then return the -3. 
     if ((UFDTArr[fd].ptrfiletable->ptrinode->FileType) != REGULAR)
     {
         return -3;
     }
 
+    //Here copying the number of bytes i.e. iSise from the provided data arr on the file.
     strncpy((UFDTArr[fd].ptrfiletable->ptrinode->Buffer) + (UFDTArr[fd].ptrfiletable->writeoffset), arr, iSize);
 
+    //Setting the file write offset to the current value in the file by adding the number of byte wriiten on the file.
     (UFDTArr[fd].ptrfiletable->writeoffset) = (UFDTArr[fd].ptrfiletable->writeoffset) + iSize;
 
+    //Setting the actual file size to the current value by adding the number of bytes written on the file.
     (UFDTArr[fd].ptrfiletable->ptrinode->ActualFileSize) = (UFDTArr[fd].ptrfiletable->ptrinode->ActualFileSize) + iSize;
 
-    return iSize;
-};
+    return iSize; // returning the Number of Bytes Wrriten on the  file.
+}; 
 
 // This Function is Used to read the Data From the File.
 int ReadFile(int fd, char *arr, int iSize)
@@ -646,7 +664,7 @@ int ReadFile(int fd, char *arr, int iSize)
 
 int OpenFile(char *name, int mode)
 {
-    int i = 0;
+    int i = 3;
     PINODE temp = NULL;
 
     if (name == NULL || mode <= 0)
@@ -707,7 +725,7 @@ int main()
         fgets(str, 80, stdin); // This function is which is used to accept the input from the keyboard just like scanf().instead we can also use : scanf("%[^'\n']s",str);
 
         // This sscanf() function seperate the words(tokens) from the str and stores it in the 2D array i.e. command.
-        //  It returns the number of tokens in the command from the str which is enters on the shell.
+        //  It returns the number of tokens(word's) in the command from the str which is enters on the shell.
         count = sscanf(str, "%s %s %s %s", command[0], command[1], command[2], command[3]);
         
         if (count == 1)
@@ -724,7 +742,7 @@ int main()
             }
             else if (strcmp(command[0], "clear") == 0)
             {
-                system("clear");
+                system("clear"); //This function passes the accepted command to the terminal.
                 continue;
             }
             else if (strcmp(command[0], "help") == 0)
@@ -735,6 +753,7 @@ int main()
             else if (strcmp(command[0], "exit") == 0)
             {
                 printf("Terminating the Virtual File System shell.\n");
+                // Deallocated all DS
                 break;
             }
             else
@@ -850,7 +869,8 @@ int main()
         {
             if (strcmp(command[0], "creat") == 0)
             {
-                
+                // creat Demo.txt 3
+                //ret = CreatFile(Demo.txt, 3);
                 ret = CreatFile(command[1], atoi(command[2]));
 
                 if (ret >= 0)
@@ -880,7 +900,7 @@ int main()
                 continue;
             }
             else if (strcmp(command[0], "open") == 0)
-            {
+            {                              //atoi -> library function which gives the inter from the ascii value.
                 ret = OpenFile(command[1], atoi(command[2]));
                 if (ret >= 0)
                 {
